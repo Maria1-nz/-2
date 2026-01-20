@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Кликер: Сбор кликов</title>
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-animation-component@6.1.0/dist/aframe-animation-component.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        .ui-panel {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            min-width: 300px;
+        }
+        .ui-panel h2 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        .ui-panel p {
+            margin: 5px 0;
+            font-size: 18px;
+        }
+        .button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+        }
+        .game-over h1 {
+            color: #FF5722;
+            margin-bottom: 20px;
+        }
+        .game-over button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .click-animation {
+            position: fixed;
+            pointer-events: none;
+            font-size: 40px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 1500;
+            opacity: 0;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Панель управления игрой -->
+    <div class="ui-panel">
+        <h2>VR Кликер</h2>
+        <p id="timer">Время: 60 сек</p>
+        <p id="score">Кликов: <span id="currentScore">0</span>/10</p>
+        <p id="hint">Наведите курсор на фигуру и кликните</p>
+    </div>
+
+    <!-- Кнопка старта -->
+    <button class="button" id="startButton">Начать игру</button>
+
+    <!-- Экран завершения игры -->
+    <div class="game-over" id="gameOverScreen">
+        <h1 id="resultTitle">Игра завершена!</h1>
+        <p id="resultMessage"></p>
+        <p>Итоговый счет: <span id="finalScore">0</span>/10 кликов</p>
+        <button onclick="restartGame()">Играть снова</button>
+    </div>
+
+    <!-- VR сцена -->
+    <a-scene cursor="rayOrigin: mouse" look-controls="enabled: true">
+        <!-- Игровые объекты (только для визуализации) -->
+       
+<!-- Куб 1 -->
+<a-box class="collectable" id="cube1"
+       position="-3 1.5 -4"
+       rotation="0 0 0"
+       color="#4CC3D9"
+       scale="0.5 0.5 0.5"
+       animation="property: rotation; to: 0 360 0; dur: 3000; loop: true; easing: linear"
+       event-set__mouseenter="color: #9C27B0"
+       event-set__mouseleave="color: #4CC3D9"
+       shadow="receive: false">
+</a-box>
+
+<!-- Сфера 1 -->
+<a-sphere class="collectable" id="sphere1"
+        position="2 2 -5"
+        radius="0.5"
+        color="#EF2D5E"
+        animation="property: position; to: 2 3 -5; dur: 2000; loop: true; dir: alternate; easing: easeInOutSine"
+        event-set__mouseenter="color: #9C27B0"
+        event-set__mouseleave="color: #EF2D5E"
+        shadow="receive: false">
+</a-sphere>
+
+<!-- Цилиндр -->
+<a-cylinder class="collectable" id="cylinder1"
+            position="0 1.5 -7"
+            radius="0.4"
+            height="1"
+            color="#FFC65D"
+            animation="property: rotation; to: 0 0 360; dur: 4000; loop: true; easing: linear"
+            event-set__mouseenter="color: #9C27B0"
+            event-set__mouseleave="color: #FFC65D"
+            shadow="receive: false">
+</a-cylinder>
+
+<!-- Конус -->
+<a-cone class="collectable" id="cone1"
+        position="-3 2 -6"
+        radius-bottom="0.5"
+        radius-top="0.1"
+        height="1"
+        color="#1abc9c"
+        animation="property: scale; to: 1.2 1.2 1.2; dur: 1500; loop: true; dir: alternate; easing: easeInOutQuad"
+        event-set__mouseenter="color: #9C27B0"
+        event-set__mouseleave="color: #1abc9c"
+        shadow="receive: false">
+</a-cone>
+
+<!-- Торус -->
+<a-torus class="collectable" id="torus1"
+         position="4 2 -5"
+         radius="0.5"
+         radius-tubular="0.1"
+         color="#9b59b6"
+         animation="property: rotation; to: 360 0 0; dur: 5000; loop: true; easing: linear"
+         event-set__mouseenter="color: #9C27B0"
+         event-set__mouseleave="color: #9b59b6"
+         shadow="receive: false">
+</a-torus>
+
+<!-- Дополнительные объекты -->
+<a-sphere class="collectable"
+        position="-4 1.5 -3"
+        radius="0.4"
+        color="#FFD733"
+        animation="property: position; to: -4 2.5 -3; dur: 1800; loop: true; dir: alternate"
+        event-set__mouseenter="color: #9C27B0"
+        event-set__mouseleave="color: #FFD733"
+        shadow="receive: false">
+</a-sphere>
+
+<a-box class="collectable"
+       position="3 1 -3"
+       rotation="0 0 0"
+       color="#8B4513"
+       scale="0.4 0.4 0.4"
+       animation="property: rotation; to: 45 45 45; dur: 2500; loop: true"
+       event-set__mouseenter="color: #9C27B0"
+       event-set__mouseleave="color: #8B4513"
+       shadow="receive: false">
+</a-box>
+
+<a-cylinder class="collectable"
+            position="-2 1.5 -8"
+            radius="0.3"
+            height="0.8"
+            color="#2E8B57"
+            animation="property: rotation; to: 0 360 360; dur: 3500; loop: true"
+            event-set__mouseenter="color: #9C27B0"
+            event-set__mouseleave="color: #2E8B57"
+            shadow="receive: false">
+</a-cylinder>
+
+<a-torus class="collectable"
+         position="1 2 -9"
+         radius="0.4"
+         radius-tubular="0.08"
+         color="#4682B4"
+         animation="property: rotation; to: 0 360 360; dur: 4500; loop: true"
+         event-set__mouseenter="color: #9C27B0"
+         event-set__mouseleave="color: #4682B4"
+        shadow="receive: false">
+</a-torus>
+
+<a-cone class="collectable"
+        position="5 1.5 -7"
+        radius-bottom="0.4"
+        radius-top="0.1"
+        height="0.8"
+        color="#DC143C"
+        animation="property: scale; to: 1.3 1.3 1.3; dur: 2200; loop: true; dir: alternate"
+        event-set__mouseenter="color: #9C27B0"
+        event-set__mouseleave="color: #DC143C"
+        shadow="receive: false">
+</a-cone>
+        
+        <!-- Текст с инструкцией -->
+        <a-text value="Кликайте по фигурам!" 
+                color="#4CAF50" 
+                position="0 4 -3" 
+                scale="2 2 2"
+                align="center">
+        </a-text>
+        
+        <!-- Кликабельная плоскость -->
+        <a-plane class="clickable-plane" 
+                 position="0 1 -4" 
+                 rotation="-90 0 0" 
+                 width="30" 
+                 height="30" 
+                 material="opacity: 0; transparent: true"
+                 data-clickable="true">
+        </a-plane>
+        
+        <!-- Источники света -->
+        <a-light type="point" position="5 5 -2" intensity="1.5" color="#FFFFFF"></a-light>
+        <a-light type="point" position="-5 3 -8" intensity="1" color="#FF3333"></a-light>
+        <a-light type="point" position="0 6 -10" intensity="0.8" color="#33FF57"></a-light>
+        <a-light type="ambient" color="#444444"></a-light>
+        
+        <!-- Пол -->
+        <a-plane position="0 0 -4" rotation="-90 0 0" width="30" height="30" color="#7BC8A4" shadow></a-plane>
+        
+        <!-- Стены для ограничения пространства -->
+        <a-plane position="0 3 -15" width="30" height="6" color="#888888" shadow></a-plane>
+        <a-plane position="-15 3 -4" rotation="0 90 0" width="30" height="6" color="#888888" shadow></a-plane>
+        <a-plane position="15 3 -4" rotation="0 -90 0" width="30" height="6" color="#888888" shadow></a-plane>
+        
+        <!-- Небо -->
+        <a-sky color="#87CEEB"></a-sky>
+        
+        <!-- Камера -->
+        <a-camera position="0 1.6 0">
+            <a-cursor></a-cursor>
+        </a-camera>
+    </a-scene>
+
+    <script>
+        // Игровые переменные
+        let gameTime = 60;
+        let collectedObjects = 0;
+        let totalObjects = 10;
+        let gameActive = false;
+        let timerInterval;
+        let clickCooldown = false;
+
+        // Элементы UI
+        const timerElement = document.getElementById('timer');
+        const scoreElement = document.getElementById('score');
+        const currentScoreElement = document.getElementById('currentScore');
+        const startButton = document.getElementById('startButton');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const finalScore = document.getElementById('finalScore');
+        const hintElement = document.getElementById('hint');
+
+        // Инициализация игры
+        function initGame() {
+            // Сбрасываем переменные
+            gameTime = 60;
+            collectedObjects = 0;
+            gameActive = false;
+            clickCooldown = false;
+            
+            // Показываем все объекты
+            document.querySelectorAll('.collectable').forEach(obj => {
+                obj.setAttribute('visible', 'true');
+            });
+            
+            // Обновляем UI
+            updateUI();
+            
+            // Показываем кнопку старта
+            startButton.style.display = 'block';
+            gameOverScreen.style.display = 'none';
+            
+            // Обновляем подсказку
+            hintElement.textContent = 'Нажмите "Начать игру"';
+        }
+
+        // Начало игры
+        function startGame() {
+            gameActive = true;
+            collectedObjects = 0;
+            gameTime = 60;
+            
+            // Запускаем таймер
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Скрываем кнопку старта
+            startButton.style.display = 'none';
+            
+            // Обновляем подсказку
+            hintElement.textContent = 'Наведите курсор на фигуру и кликните';
+            
+            updateUI();
+        }
+
+        // Обновление таймера
+        function updateTimer() {
+            if (!gameActive) return;
+            
+            gameTime--;
+            updateUI();
+            
+            if (gameTime <= 0) {
+                endGame(false);
+            }
+            
+            // Меняем цвет таймера при малом времени
+            if (gameTime <= 10) {
+                timerElement.style.color = '#FF5722';
+            } else {
+                timerElement.style.color = 'white';
+            }
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            timerElement.textContent = `Время: ${gameTime} сек`;
+            currentScoreElement.textContent = collectedObjects;
+            scoreElement.innerHTML = `Кликов: <span id="currentScore">${collectedObjects}</span>/10`;
+            
+            // Меняем цвет счетчика в зависимости от прогресса
+            if (collectedObjects > 0) {
+                currentScoreElement.style.color = '#4CAF50';
+            } else {
+                currentScoreElement.style.color = 'white';
+            }
+        }
+
+        // Создание анимации клика
+        function createClickAnimation(x, y) {
+            const animation = document.createElement('div');
+            animation.className = 'click-animation';
+            animation.textContent = '+1';
+            animation.style.left = x + 'px';
+            animation.style.top = y + 'px';
+            
+            document.body.appendChild(animation);
+            
+            // Удаляем элемент после анимации
+            setTimeout(() => {
+                animation.remove();
+            }, 1000);
+        }
+
+        // Простой звук клика
+        function playClickSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                setTimeout(() => {
+                    oscillator.stop();
+                }, 100);
+            } catch (e) {
+                // Если AudioContext не поддерживается, просто игнорируем
+            }
+        }
+
+        // Обработка клика
+        function handleClick(event) {
+            if (!gameActive || clickCooldown) return;
+            
+            // Включаем кулдаун на 100ms, чтобы предотвратить множественные клики
+            clickCooldown = true;
+            setTimeout(() => {
+                clickCooldown = false;
+            }, 100);
+            
+            // Увеличиваем счет на 1
+            collectedObjects++;
+            
+            // Показываем анимацию клика
+            createClickAnimation(event.clientX, event.clientY);
+            
+            // Проигрываем звук
+            playClickSound();
+            
+            // Визуальная обратная связь
+            const scene = document.querySelector('a-scene');
+            scene.style.filter = 'brightness(1.3)';
+            setTimeout(() => {
+                scene.style.filter = 'brightness(1)';
+            }, 100);
+            
+            // Мигание случайного объекта
+            if (collectedObjects < totalObjects) {
+                const objects = document.querySelectorAll('.collectable');
+                const randomIndex = Math.floor(Math.random() * objects.length);
+                const randomObject = objects[randomIndex];
+                
+                const originalColor = randomObject.getAttribute('color');
+                randomObject.setAttribute('color', '#FFFFFF');
+                setTimeout(() => {
+                    randomObject.setAttribute('color', originalColor);
+                }, 150);
+            }
+            
+            updateUI();
+            
+            // Проверяем победу
+            if (collectedObjects >= totalObjects) {
+                setTimeout(() => {
+                    endGame(true);
+                }, 500);
+            }
+        }
+
+        // Завершение игры
+        function endGame(isWin) {
+            gameActive = false;
+            clearInterval(timerInterval);
+            
+            // Показываем экран завершения
+            if (isWin) {
+                resultTitle.textContent = 'Победа!';
+                resultMessage.textContent = `Вы сделали 10 кликов за ${60 - gameTime} секунд!`;
+            } else {
+                resultTitle.textContent = 'Время вышло';
+                resultMessage.textContent = `Вы сделали ${collectedObjects} кликов`;
+            }
+            
+            finalScore.textContent = `${collectedObjects}`;
+            gameOverScreen.style.display = 'block';
+        }
+
+        // Перезапуск игры
+        function restartGame() {
+            initGame();
+            startGame();
+        }
+
+        // Добавляем обработчики событий
+        document.addEventListener('DOMContentLoaded', () => {
+            initGame();
+            
+            // Обработчик кликов по всей сцене
+            const scene = document.querySelector('a-scene');
+            
+            // Обработчик кликов по сцене
+            scene.addEventListener('click', function(event) {
+                // Проверяем, что клик не по кнопке старта
+                if (event.target.id !== 'startButton' && !event.target.closest('.button')) {
+                    handleClick(event);
+                }
+            });
+            
+            // Обработчик кликов по плоскости
+            const clickablePlane = document.querySelector('.clickable-plane');
+            if (clickablePlane) {
+                clickablePlane.addEventListener('click', handleClick);
+            }
+            
+            // Обработчик кнопки старта
+            startButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                startGame();
+            });
+            
+            // Обработчик для клавиши пробела (альтернативный способ)
+            document.addEventListener('keydown', function(event) {
+                if (event.code === 'Space' && gameActive) {
+                    event.preventDefault();
+                    // Создаем искусственное событие клика
+                    const clickEvent = new MouseEvent('click', {
+                        clientX: window.innerWidth / 2,
+                        clientY: window.innerHeight / 2
+                    });
+                    handleClick(clickEvent);
+                }
+            });
+            
+            // Обработчик для кликов по объектам (на всякий случай)
+            document.querySelectorAll('.collectable').forEach(obj => {
+                obj.addEventListener('click', handleClick);
+            });
+        });
+
+        // Глобальная функция для перезапуска
+        window.restartGame = restartGame;
+    </script>
+</body>
+</html>
